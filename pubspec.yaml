@@ -46,6 +46,13 @@ dependencies:
   equatable: ^2.0.5
   uuid: ^4.4.2
 
+  # REPRODUCCIÓN RTSP (media_kit)
+  media_kit: ^1.0.0
+  media_kit_video: ^1.0.0
+  media_kit_libs_windows_video: ^1.0.0   # Necesario para Windows
+  media_kit_libs_linux: ^1.0.0           # Necesario para Linux
+  # media_kit_libs_macos_video: ^1.0.0   # (comentado, lo añadimos después si usas macOS)
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
