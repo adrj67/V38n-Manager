@@ -1,4 +1,5 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'camera_config.dart';
 
 class AppConfig {
   static String getEnv(String key, {String defaultValue = ''}) {
@@ -10,7 +11,7 @@ class AppConfig {
     int i = 1;
     while (true) {
       final name = getEnv('CAMERA_${i}_NAME');
-      if (name.isEmpty) break;
+      if (name.isEmpty) break; // Si no hay nombre, dejamos de buscar
       cameras.add(CameraConfig(
         id: i,
         name: name,
@@ -24,24 +25,4 @@ class AppConfig {
     }
     return cameras;
   }
-}
-
-class CameraConfig {
-  final int id;
-  final String name;
-  final String ip;
-  final String rtspUrl;
-  final String onvifUrl;
-  final String username;
-  final String password;
-
-  const CameraConfig({
-    required this.id,
-    required this.name,
-    required this.ip,
-    required this.rtspUrl,
-    required this.onvifUrl,
-    required this.username,
-    required this.password,
-  });
 }
