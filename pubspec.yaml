@@ -53,6 +53,10 @@ dependencies:
   media_kit_libs_linux: ^1.0.0           # Necesario para Linux
   # media_kit_libs_macos_video: ^1.0.0   # (comentado, lo añadimos después si usas macOS)
 
+  # easy_onvif: ^3.1.4     # O la última versión estable
+  xml: ^6.5.0            # Para parsear respuestas SOAP
+  http: ^1.2.0           # Para solicitudes HTTP (necesario para ONVIF)
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
