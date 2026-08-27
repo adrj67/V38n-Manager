@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/config/app_config.dart';
-import '../core/config/camera_config.dart';
 import 'camera_screen.dart';
+import 'recordings_list_screen.dart';  // <-- Importar
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -11,7 +11,23 @@ class HomeScreen extends StatelessWidget {
     final cameras = AppConfig.getCameras();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('V38n Manager')),
+      appBar: AppBar(
+        title: const Text('V38n Manager'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.video_library),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const RecordingsListScreen(),
+                ),
+              );
+            },
+            tooltip: 'Mis grabaciones',
+          ),
+        ],
+      ),
       body: cameras.isEmpty
           ? const Center(
               child: Column(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import 'package:v38n_manager/services/recording_manager.dart';
 import '../core/config/camera_config.dart';
 import '../widgets/rtsp_player.dart';
 import 'local_player_screen.dart';
@@ -32,8 +33,12 @@ class _CameraScreenState extends State<CameraScreen> {
 
       await _recordWithFFmpeg(widget.camera.rtspUrl, outputPath, duration: 10);
 
+      // después de grabar con FFmpeg:
+      final tempPath = outputPath; // Donde FFmpeg guardó
+      final finalPath = await RecordingManager.saveRecording(tempPath); // Mover a subcarpeta
+
       setState(() {
-        _lastRecordedFile = outputPath;
+        _lastRecordedFile = finalPath; // Guardar la nueva ruta
       });
 
       if (mounted) {
