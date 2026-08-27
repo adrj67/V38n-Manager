@@ -1,5 +1,5 @@
 name: v38n_manager
-description: "A new Flutter project."
+description: "Gestor de cámaras V38n"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -35,28 +35,22 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
-  # Variables de entorno
+  # Variables de entorno para leer .env
   flutter_dotenv: ^5.1.0
 
-  # Almacenamiento persistente
-  shared_preferences: ^2.3.0
-  path_provider: ^2.1.4
-
-  # Utilidades
-  equatable: ^2.0.5
-  uuid: ^4.4.2
-
-  # REPRODUCCIÓN RTSP (media_kit)
+  # Para reproducir RTSP
   media_kit: ^1.0.0
   media_kit_video: ^1.0.0
-  media_kit_libs_windows_video: ^1.0.0   # Necesario para Windows
-  media_kit_libs_linux: ^1.0.0           # Necesario para Linux
-  # media_kit_libs_macos_video: ^1.0.0   # (comentado, lo añadimos después si usas macOS)
+  media_kit_libs_windows_video: ^1.0.0
+  media_kit_libs_linux: ^1.0.0
 
-  # easy_onvif: ^3.1.4     # O la última versión estable
-  xml: ^6.5.0            # Para parsear respuestas SOAP
-  http: ^1.2.0           # Para solicitudes HTTP (necesario para ONVIF)
+  # Para grabar con FFmpeg
+  ffmpeg_cube: ^0.1.2
 
+  # Para guardar archivos
+  path_provider: ^2.1.4
+
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter
