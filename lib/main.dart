@@ -12,9 +12,9 @@ void main() async {
   // Cargar .env
   try {
     await dotenv.load(fileName: 'assets/.env');
-    print('✅ .env cargado');
+    debugPrint('✅ .env cargado');
   } catch (e) {
-    print('❌ Error al cargar .env: $e');
+    debugPrint('❌ Error al cargar .env: $e');
   }
 
   runApp(const MyApp());

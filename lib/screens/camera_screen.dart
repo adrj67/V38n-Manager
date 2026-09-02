@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
-import 'package:v38n_manager/services/recording_manager.dart';
+import 'package:v38n_manager/screens/recordings_list_screen.dart';
 import '../core/config/camera_config.dart';
 import '../widgets/rtsp_player.dart';
+import '../services/recording_manager.dart';
+import '../widgets/duration_selector.dart';
 import 'local_player_screen.dart';
 
 class CameraScreen extends StatefulWidget {
@@ -18,6 +20,7 @@ class CameraScreen extends StatefulWidget {
 class _CameraScreenState extends State<CameraScreen> {
   bool _isRecording = false;
   String? _lastRecordedFile;
+  int _selectedDuration = 30; // Duración predeterminada
 
   Future<void> _startRecording() async {
     if (_isRecording) return;
@@ -29,21 +32,32 @@ class _CameraScreenState extends State<CameraScreen> {
       if (dir == null) throw Exception('No se pudo acceder a Descargas');
 
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final outputPath = '${dir.path}/recording_$timestamp.mp4';
+      final tempPath = '${dir.path}/recording_$timestamp.mp4';
 
-      await _recordWithFFmpeg(widget.camera.rtspUrl, outputPath, duration: 10);
+      // Grabar con la duración seleccionada
+      await _recordWithFFmpeg(
+        widget.camera.rtspUrl,
+        tempPath,
+        duration: _selectedDuration,
+      );
 
-      // después de grabar con FFmpeg:
-      final tempPath = outputPath; // Donde FFmpeg guardó
-      final finalPath = await RecordingManager.saveRecording(tempPath); // Mover a subcarpeta
+      // Mover a la subcarpeta V38n_Recordings
+      final finalPath = await RecordingManager.saveRecording(
+        tempPath,
+        cameraName: widget.camera.name,
+        prefix: 'grabacion',
+      );
 
       setState(() {
-        _lastRecordedFile = finalPath; // Guardar la nueva ruta
+        _lastRecordedFile = finalPath;
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('✅ Grabación guardada: $outputPath')),
+          SnackBar(
+            content: Text('✅ Grabación de ${_selectedDuration}s guardada'),
+            duration: const Duration(seconds: 2),
+          ),
         );
       }
     } catch (e) {
@@ -109,16 +123,28 @@ class _CameraScreenState extends State<CameraScreen> {
 
   void _openDownloadsFolder() async {
     try {
-      final dir = await getDownloadsDirectory();
-      if (dir != null) {
-        // Abrir carpeta de Descargas
-        if (Platform.isWindows) {
-          await Process.run('explorer', [dir.path]);
-        } else if (Platform.isLinux) {
-          await Process.run('xdg-open', [dir.path]);
-        } else if (Platform.isMacOS) {
-          await Process.run('open', [dir.path]);
-        }
+      // Obtener la ruta de Descargas correcta en Windows
+      String downloadsPath;
+      if (Platform.isWindows) {
+        // Usar la variable de entorno USERPROFILE
+        final userProfile = Platform.environment['USERPROFILE'] ?? '';
+        downloadsPath = '$userProfile\\Downloads\\V38n_Recordings';
+      } else {
+        final dir = await RecordingManager.getRecordingsFolder();
+        downloadsPath = dir.path;
+      }
+      
+      final dir = Directory(downloadsPath);
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
+      }
+      
+      if (Platform.isWindows) {
+        await Process.run('explorer', [downloadsPath]);
+      } else if (Platform.isLinux) {
+        await Process.run('xdg-open', [downloadsPath]);
+      } else if (Platform.isMacOS) {
+        await Process.run('open', [downloadsPath]);
       }
     } catch (e) {
       if (mounted) {
@@ -139,7 +165,7 @@ class _CameraScreenState extends State<CameraScreen> {
       body: Column(
         children: [
           Expanded(
-            flex: 7,
+            flex: 6,
             child: RtspPlayer(url: widget.camera.rtspUrl),
           ),
           Container(
@@ -148,6 +174,17 @@ class _CameraScreenState extends State<CameraScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Selector de duración
+                DurationSelector(
+                  onDurationSelected: (duration) {
+                    setState(() {
+                      _selectedDuration = duration;
+                    });
+                  },
+                  initialDuration: _selectedDuration,
+                ),
+                const SizedBox(height: 12),
+                // Botones de acción
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -156,7 +193,11 @@ class _CameraScreenState extends State<CameraScreen> {
                       icon: Icon(
                         _isRecording ? Icons.hourglass_top : Icons.fiber_manual_record,
                       ),
-                      label: Text(_isRecording ? 'Grabando...' : 'Grabar (10s)'),
+                      label: Text(
+                        _isRecording
+                            ? 'Grabando...'
+                            : 'Grabar (${_selectedDuration}s)',
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _isRecording ? Colors.orange : Colors.green,
                       ),
@@ -165,6 +206,18 @@ class _CameraScreenState extends State<CameraScreen> {
                       icon: const Icon(Icons.folder_open),
                       onPressed: _openDownloadsFolder,
                       tooltip: 'Abrir carpeta de grabaciones',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.video_library),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const RecordingsListScreen(),
+                          ),
+                        );
+                      },
+                      tooltip: 'Mis grabaciones',
                     ),
                   ],
                 ),
