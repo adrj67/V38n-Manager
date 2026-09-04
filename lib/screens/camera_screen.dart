@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -21,11 +23,26 @@ class _CameraScreenState extends State<CameraScreen> {
   bool _isRecording = false;
   String? _lastRecordedFile;
   int _selectedDuration = 30; // Duración predeterminada
+  int _recordingCountdown = 0;
+  Timer? _countdownTimer;
 
   Future<void> _startRecording() async {
     if (_isRecording) return;
 
-    setState(() => _isRecording = true);
+    setState(() {
+      _isRecording = true;
+      _recordingCountdown = _selectedDuration;
+    });
+
+    // Iniciar cuenta regresiva
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _recordingCountdown--;
+      });
+      if (_recordingCountdown <= 0) {
+        timer.cancel();
+      }
+    });
 
     try {
       final dir = await getDownloadsDirectory();
@@ -34,14 +51,12 @@ class _CameraScreenState extends State<CameraScreen> {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final tempPath = '${dir.path}/recording_$timestamp.mp4';
 
-      // Grabar con la duración seleccionada
       await _recordWithFFmpeg(
         widget.camera.rtspUrl,
         tempPath,
         duration: _selectedDuration,
       );
 
-      // Mover a la subcarpeta V38n_Recordings
       final finalPath = await RecordingManager.saveRecording(
         tempPath,
         cameraName: widget.camera.name,
@@ -67,7 +82,11 @@ class _CameraScreenState extends State<CameraScreen> {
         );
       }
     } finally {
-      if (mounted) setState(() => _isRecording = false);
+      _countdownTimer?.cancel();
+      if (mounted) setState(() {
+        _isRecording = false;
+        _recordingCountdown = 0;
+      });
     }
   }
 
@@ -155,6 +174,53 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
+  // método para capturar fotograma:
+  Future<void> _takeSnapshot() async {
+    try {
+      // Usar la carpeta de grabaciones en lugar de Descargas
+      final dir = await RecordingManager.getRecordingsFolder();
+      
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final cleanName = widget.camera.name.replaceAll(' ', '_');
+      final outputPath = '${dir.path}/${cleanName}_captura_$timestamp.jpg';
+
+      String ffmpegPath = 'ffmpeg';
+      if (Platform.isWindows) {
+        try {
+          final whichResult = await Process.run('where', ['ffmpeg']);
+          if (whichResult.exitCode == 0) {
+            ffmpegPath = (whichResult.stdout as String).trim().split('\n').first;
+          }
+        } catch (e) {}
+      }
+
+      final args = [
+        '-i', widget.camera.rtspUrl,
+        '-frames:v', '1',
+        '-q:v', '2',
+        '-y',
+        outputPath,
+      ];
+
+      final result = await Process.run(ffmpegPath, args);
+      if (result.exitCode != 0) {
+        throw Exception('Error al capturar: ${result.stderr}');
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('✅ Captura guardada: ${RecordingManager.getFriendlyName(outputPath)}')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Error al capturar: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -183,6 +249,32 @@ class _CameraScreenState extends State<CameraScreen> {
                   },
                   initialDuration: _selectedDuration,
                 ),
+                // barra de progreso y cuenta regresiva
+                if (_isRecording) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: LinearProgressIndicator(
+                          value: 1 - (_recordingCountdown / _selectedDuration),
+                          backgroundColor: Colors.grey[800],
+                          color: Colors.green,
+                          minHeight: 8,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${_recordingCountdown}s',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                // fin barra de progreso y cuenta regresiva
                 const SizedBox(height: 12),
                 // Botones de acción
                 Row(
@@ -206,6 +298,11 @@ class _CameraScreenState extends State<CameraScreen> {
                       icon: const Icon(Icons.folder_open),
                       onPressed: _openDownloadsFolder,
                       tooltip: 'Abrir carpeta de grabaciones',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.camera_alt, color: Colors.white),
+                      onPressed: _takeSnapshot,
+                      tooltip: 'Capturar fotograma',
                     ),
                     IconButton(
                       icon: const Icon(Icons.video_library),

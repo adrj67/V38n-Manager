@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:media_kit/media_kit.dart';
@@ -26,6 +28,12 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
   double _maxDuration = 10;
   bool _isLoading = true;
   bool _isProcessing = false;
+
+  double _currentPosition = 0;
+  Timer? _positionTimer;
+
+  double _playbackSpeed = 1.0;
+  final List<double> _speedOptions = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 4.0]; 
   
   // Reproductor para vista previa
   late Player _player;
@@ -37,7 +45,25 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
     super.initState();
     _player = Player();
     _controller = VideoController(_player);
+   // Escuchar cambios de posición
+    _player.stream.position.listen((position) {
+      if (mounted) {
+        setState(() {
+          _currentPosition = position.inMilliseconds / 1000.0;
+        });
+      }
+    });
+    
     _loadDuration();
+  }
+
+  // Agregar método para alternar play/pause:
+  void _togglePlayPause() {
+    if (_player.state.playing) {
+      _player.pause();
+    } else {
+      _player.play();
+    }
   }
 
   Future<void> _loadDuration() async {
@@ -211,17 +237,76 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
                   flex: 4,
                   child: Container(
                     color: Colors.black,
-                    child: _isVideoReady
-                        ? Video(
-                            controller: _controller,
-                            fit: BoxFit.contain,
-                          )
-                        : const Center(
-                            child: Text(
-                              'Cargando video...',
-                              style: TextStyle(color: Colors.white70),
+                    child: Stack(
+                      children: [
+                        // Video
+                        _isVideoReady
+                            ? Video(
+                                controller: _controller,
+                                fit: BoxFit.contain,
+                              )
+                            : const Center(
+                                child: Text(
+                                  'Cargando video...',
+                                  style: TextStyle(color: Colors.white70),
+                                ),
+                              ),
+                        // Controles overlay en la parte inferior
+                        if (_isVideoReady)
+                          Positioned(
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.bottomCenter,
+                                  end: Alignment.topCenter,
+                                  colors: [
+                                    Colors.black.withOpacity(0.7),
+                                    Colors.transparent,
+                                  ],
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  // Botón Play/Pause
+                                  IconButton(
+                                    icon: Icon(
+                                      _player.state.playing ? Icons.pause : Icons.play_arrow,
+                                      color: Colors.white,
+                                    ),
+                                    onPressed: _togglePlayPause,
+                                    iconSize: 24,
+                                  ),
+                                  // Barra de progreso
+                                  Expanded(
+                                    child: Slider(
+                                      value: _currentPosition.clamp(0, _maxDuration),
+                                      min: 0,
+                                      max: _maxDuration,
+                                      onChanged: (value) {
+                                        _player.seek(Duration(milliseconds: (value * 1000).toInt()));
+                                      },
+                                      activeColor: Colors.red,
+                                      inactiveColor: Colors.white30,
+                                    ),
+                                  ),
+                                  // Tiempo
+                                  Text(
+                                    '${_formatTime(_currentPosition)} / ${_formatTime(_maxDuration)}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
+                      ],
+                    ),
                   ),
                 ),
                 // Controles de edición (60% de la pantalla)

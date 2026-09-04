@@ -34,48 +34,30 @@ class RecordingManager {
       return sourcePath;
     }
     
-    // Obtener el nombre base del archivo
     final sourceFileName = source.uri.pathSegments.last;
     
-    // Si el archivo ya tiene un nombre con cámara y está en la carpeta correcta, no mover
-    if (sourcePath.startsWith(dir.path) && 
-        (sourceFileName.contains('Camara_') || 
-        sourceFileName.contains('grabacion_') || 
-        sourceFileName.contains('recortado_') || 
-        sourceFileName.contains('audio_'))) {
-      print('✅ Archivo ya está en la carpeta correcta: $sourcePath');
+    // Si el archivo ya está en la carpeta correcta
+    if (sourcePath.startsWith(dir.path)) {
+      // Si es captura, solo verificar que esté en el lugar correcto
+      if (sourceFileName.contains('captura')) {
+        print('✅ Captura ya está en la carpeta correcta: $sourcePath');
+        return sourcePath;
+      }
       return sourcePath;
     }
     
-    // Si el archivo ya está en la carpeta correcta pero tiene nombre antiguo
-    if (sourcePath.startsWith(dir.path)) {
-      // Solo renombrar si es necesario
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      String baseName = prefix ?? 'recording';
-      if (cameraName != null && cameraName.isNotEmpty) {
-        final cleanName = cameraName.replaceAll(' ', '_').replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '');
-        baseName = '${cleanName}_$baseName';
-      }
-      final fileName = '${baseName}_$timestamp.mp4';
-      final destPath = '${dir.path}/$fileName';
-      
-      if (await File(destPath).exists()) {
-        await File(destPath).delete();
-      }
-      await source.rename(destPath);
-      print('✅ Archivo renombrado a: $destPath');
-      return destPath;
-    }
+    // Determinar extensión
+    final extension = sourceFileName.contains('.jpg') ? '.jpg' : '.mp4';
     
-    // Si el archivo está en otro lugar (ej: Descargas), moverlo
+    // Si el archivo está en otro lugar, moverlo
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     String baseName = prefix ?? 'recording';
     if (cameraName != null && cameraName.isNotEmpty) {
-      final cleanName = cameraName.replaceAll(' ', '_').replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '');
+      final cleanName = cameraName.replaceAll(' ', '_');
       baseName = '${cleanName}_$baseName';
     }
     
-    final fileName = '${baseName}_$timestamp.mp4';
+    final fileName = '${baseName}_$timestamp$extension';
     final destPath = '${dir.path}/$fileName';
     
     if (await File(destPath).exists()) {
@@ -178,6 +160,9 @@ class RecordingManager {
             break;
           case 'trimmed':
             typeLabel = '✂️ Recortado';
+            break;
+          case 'captura':
+            typeLabel = '📸 Captura';
             break;
           default:
             typeLabel = type;

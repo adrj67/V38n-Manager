@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:v38n_manager/widgets/video_metadata_dialog.dart';
 import 'dart:io';
 import '../services/recording_manager.dart';
 import '../services/video_editor_service.dart';
@@ -42,10 +43,11 @@ class _RecordingsListScreenState extends State<RecordingsListScreen> {
       
       for (final file in allFiles) {
         final fileName = file.path.split(Platform.pathSeparator).last.toLowerCase();
-        // Archivos editados: contienen 'recortado' o 'audio' o 'trimmed'
+        // Archivos editados: contienen 'recortado', 'audio', o 'captura'
         if (fileName.contains('recortado') || 
             fileName.contains('audio') || 
-            fileName.contains('trimmed')) {
+            fileName.contains('trimmed') ||
+            fileName.contains('captura')) {  // <-- Agregar captura
           edited.add(file);
         } else {
           originals.add(file);
@@ -275,6 +277,12 @@ class _RecordingsListScreenState extends State<RecordingsListScreen> {
                                 icon: const Icon(Icons.delete, color: Colors.red),
                                 onPressed: () => _deleteRecording(path),
                                 tooltip: 'Eliminar',
+                                iconSize: 20,
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.info, color: Colors.blue),
+                                onPressed: () => VideoMetadataDialog.show(context, path),
+                                tooltip: 'Información',
                                 iconSize: 20,
                               ),
                             ],
